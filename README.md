@@ -1,5 +1,11 @@
 # LanBridge
-Connect multiple LANs to access each other as if they were on one LAN. 将多个局域网连接起来，就像在一个局域网一样互相访问。
+将多个局域网连接起来，就像在一个局域网一样互相访问。
+
+Connect multiple LANs to access each other as if they were on one LAN. 
+
+
+![image](https://github.com/cuirongjie/LanBridge/blob/main/raw_folder/img1.png?raw=true)
+
 
 # 特点
 1. 将多个局域网连接在一起，不同局域网之间可以任意通讯
@@ -8,4 +14,5 @@ Connect multiple LANs to access each other as if they were on one LAN. 将多个
 4. 支持客户端与服务端连接认证，支持客户端与客户端连接认证
 5. 安全，不暴露服务到公网
 6. 不依赖任何第三方包
-7. 不会检测出木马病毒
+7. 任何系统不会检测出木马病毒
+
