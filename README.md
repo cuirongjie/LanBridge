@@ -4,7 +4,7 @@
 Connect multiple LANs to access each other as if they were on one LAN. 
 
 
-![image](https://github.com/cuirongjie/LanBridge/blob/main/raw_folder/img1.png?raw=true)
+![image](https://github.com/cuirongjie/LanBridge/blob/main/LanBridge_Server/img/img1.png?raw=true)
 
 
 # 特点 Features
@@ -24,8 +24,8 @@ Connect multiple LANs to access each other as if they were on one LAN.
 
 ## 用法一、连接多个局域网
 
-#### 实现：在 192.168.1.12 上访问 http://192.168.1.11:9080/ 相当于访问了 http://172.16.16.22:8080/
-![image](https://github.com/cuirongjie/LanBridge/blob/main/raw_folder/img1.png?raw=true)
+#### 如图，实现：在 192.168.1.12 上访问 http://192.168.1.11:9080/ 相当于访问了 http://172.16.16.22:8080/
+![image](https://github.com/cuirongjie/LanBridge/blob/main/LanBridge_Server/img/img2.png?raw=true)
 
 #### 准备：server程序拷贝到服务器(111.204.166.168)上，client程序拷贝到192.168.1.11、172.16.16.21上。
 
@@ -67,8 +67,8 @@ Connect multiple LANs to access each other as if they were on one LAN.
 
 
 ## 用法二、内网穿透
-#### 实现：互联网用户访问 http://111.204.166.168:9080/ 相当于访问了 http://172.16.16.22:8080/
-![image](https://github.com/cuirongjie/LanBridge/blob/main/raw_folder/img1.png?raw=true)
+#### 如图，实现：互联网用户访问 http://111.204.166.168:9080/ 相当于访问了 http:// 172.16.16.22:8080/
+![image](https://github.com/cuirongjie/LanBridge/blob/main/LanBridge_Server/img/img3.png?raw=true)
 
 #### 准备：server程序拷贝到服务器(111.204.166.168)上，client程序拷贝到172.16.16.21上。
 
@@ -101,7 +101,7 @@ Connect multiple LANs to access each other as if they were on one LAN.
 2. 此方法亦适用于其他协议（RDP、SSH、http、https、websocket、ftp、tcp 等任意基于tcp的协议）。
 
 ## 用法三、增加安全性
-#### 实现：在“用法一”的基础上，为客户机172.16.16.21增加连接密码
+#### 如图，实现：在“用法一”的基础上，为客户机172.16.16.21增加连接密码
 
 #### 服务端
 111.204.166.168中，server.config：
@@ -197,6 +197,14 @@ Connect multiple LANs to access each other as if they were on one LAN.
   ]
 }
 ```
+说明：
+1. Port：可选，默认值28010。客户端与服务器通信的唯一端口；
+2. ServerPassword：可选，默认无密码。客户端连接服务器时需要提供的凭证；
+3. Whitelist：可选，默认允许任何客户端连接。允许连接服务器的客户端识别码列表；
+4. Mappings：可选，默认不开启内网穿透。用于内网穿透，指明将哪些局域网机器的端口映射的外网；
+5. _ ServerPort：用于内网穿透，外网访问的端口；
+6. _ RemoteCode：用于内网穿透，某局域网客户端的识别码，指明需要映射的局域网；
+7. _ DistAddr：用于内网穿透，某局域网任意一个IP和端口，将其映射到外网。:8080表示RemoteCode本机的8080端口。
 
 #### 客户端
 ```
@@ -221,3 +229,14 @@ Connect multiple LANs to access each other as if they were on one LAN.
   ]
 }
 ```
+说明：
+1. ServerAddr：必须。服务器的IP与端口；
+2. ServerPassword：可选。与服务器密码一致，才能连接到服务器；
+3. MyCode：必须。本机识别码，唯一，不能与其他客户端的识别码相同；
+4. MyPassword：可选，默认不设置。本机连接密码；
+5. Mappings：可选。端口映射列表，指明本机某个端口与其他局域网某个端口的对应关系；
+6. _ LocalPort：本机端口；
+7. _ RemoteCode：其他局域网某客户端的识别码；
+8. _ RemotePassword：其他局域网某客户端的访问密码，与对方设置的密码一致才能连通；
+9. _ DistAddr：其他局域网任意一个IP和端口。:8080表示RemoteCode本机的8080端口。
+
