@@ -25,7 +25,7 @@ Connect multiple LANs to access each other as if they were on one LAN.
 ## 用法一、连接多个局域网
 
 #### 如图，实现：在 192.168.1.12 上访问 http://192.168.1.11:9080/ 相当于访问了 http://172.16.16.22:8080/
-![image](https://github.com/cuirongjie/LanBridge/blob/main/LanBridge_Server/img/img2.png?raw=true)
+![image](https://github.com/cuirongjie/LanBridge/blob/main/LanBridge_Server/img/img2_2.png?raw=true)
 
 #### 准备：server程序拷贝到服务器(111.204.166.168)上，client程序拷贝到192.168.1.11、172.16.16.21上。
 
