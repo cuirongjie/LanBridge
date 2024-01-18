@@ -35,11 +35,11 @@ func main() {
 		time.Sleep(2000)
 		return
 	}
-	if len(conf.Mappings) == 0 {
-		logger.Info("Mappings配置有误")
-		time.Sleep(2000)
-		return
-	}
+	//if len(conf.Mappings) == 0 {
+	//	logger.Info("Mappings配置有误")
+	//	time.Sleep(2000)
+	//	return
+	//}
 	if len(conf.MyPassword) == 0 {
 		logger.Info("本机连接密码未启用")
 	} else {

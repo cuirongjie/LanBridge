@@ -42,14 +42,22 @@ func onReverseProxyApply(message Message) {
 	}
 	logger.Debug("ReverseProxyTunnel 连接建立", message.TunnelId)
 	// 打通tunnel
-	go func() {
-		io.Copy(distConn, reverseProxyTunnelConn)
-		logger.Debug("ReverseProxyTunnel 连接 关闭1", message.TunnelId)
-		distConn.Close()
-		reverseProxyTunnelConn.Close()
-	}()
-	io.Copy(reverseProxyTunnelConn, distConn)
-	logger.Debug("ReverseProxyTunnel 目标连接 关闭1", message.TunnelId)
-	distConn.Close()
-	reverseProxyTunnelConn.Close()
+	if distConn != nil && reverseProxyTunnelConn != nil {
+		go func() {
+			_, err := io.Copy(distConn, reverseProxyTunnelConn)
+			if err != nil {
+				logger.Debug("onReverseProxyApply 1", err)
+			}
+			logger.Debug("ReverseProxyTunnel 连接 关闭1", message.TunnelId)
+			_ = distConn.Close()
+			_ = reverseProxyTunnelConn.Close()
+		}()
+		_, err := io.Copy(reverseProxyTunnelConn, distConn)
+		if err != nil {
+			logger.Debug("onReverseProxyApply 2", err)
+		}
+		logger.Debug("ReverseProxyTunnel 目标连接 关闭1", message.TunnelId)
+		_ = distConn.Close()
+		_ = reverseProxyTunnelConn.Close()
+	}
 }

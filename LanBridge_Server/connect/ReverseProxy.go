@@ -33,49 +33,43 @@ func startListen(mapping cache.Mapping) {
 	for {
 		client, err := server.Accept()
 		if err == nil {
-			go onReverseClientConnect(client, mapping)
+			go onReverseClientConnect(&client, mapping)
 		}
 	}
 }
 
 // 接收到连接
-func onReverseClientConnect(clientConn net.Conn, mapping cache.Mapping) {
+func onReverseClientConnect(clientConn *net.Conn, mapping cache.Mapping) {
 	// tunnelId
 	rand.Intn(100000)
 	tunnelId := strconv.FormatInt(time.Now().UnixNano(), 10) + strconv.Itoa(rand.Intn(100000))
 	//
 	defer func() {
 		// 关闭up
-		if cache.ReverseProxyUpConns[tunnelId] != nil {
+		if CloseAndDelConn(cache.ReverseProxyUpConns, tunnelId) {
 			logger.Debug("ReverseProxyUpTunnel关闭", tunnelId)
-			cache.ReverseProxyUpConns[tunnelId].Close()
-			delete(cache.ReverseProxyUpConns, tunnelId)
 		}
 		// 关闭down
-		if cache.ReverseProxyDownConns[tunnelId] != nil {
+		if CloseAndDelConn(cache.ReverseProxyDownConns, tunnelId) {
 			logger.Debug("ReverseProxyDownTunnel关闭", tunnelId)
-			cache.ReverseProxyDownConns[tunnelId].Close()
-			delete(cache.ReverseProxyDownConns, tunnelId)
 		}
 		// 关闭flag
-		if cache.ReverseProxyFlags[tunnelId] != nil {
-			close(cache.ReverseProxyFlags[tunnelId])
-			delete(cache.ReverseProxyFlags, tunnelId)
-		}
+		CloseAndDelFlag(cache.ReverseProxyFlags, tunnelId)
 	}()
 	// 如果远端机器没有连接
-	if cache.MainConns[mapping.RemoteCode] == nil {
+	if GetConn(cache.MainConns, mapping.RemoteCode) == nil {
 		return
 	}
 	// 放入连接池
-	cache.ReverseProxyUpConns[tunnelId] = clientConn
-	cache.ReverseProxyFlags[tunnelId] = make(chan bool, 1)
+	StoreConn(cache.ReverseProxyUpConns, tunnelId, clientConn)
+	reverseCh := make(chan bool, 1)
+	StoreFlag(cache.ReverseProxyFlags, tunnelId, &reverseCh)
 	// 向远端机器发送连接请求
 	message := NewMessage(constant.Cmd_ReverseProxyConn_Apply)
 	message.TunnelId = tunnelId
 	message.DistCode = mapping.RemoteCode
 	message.DistAddr = mapping.DistAddr
-	hasErr := SendMessage(cache.MainConns[mapping.RemoteCode], message)
+	hasErr := SendMessage(GetConn(cache.MainConns, mapping.RemoteCode), message)
 	if hasErr {
 		return
 	}
@@ -84,29 +78,38 @@ func onReverseClientConnect(clientConn net.Conn, mapping cache.Mapping) {
 	case <-time.After(constant.WaitSecond):
 		logger.Debug("ReverseProxy 远端机器连接超时")
 		return
-	case connected := <-cache.ReverseProxyFlags[tunnelId]:
+	case connected := <-*GetFlag(cache.ReverseProxyFlags, tunnelId):
 		if connected == false {
 			return
 		}
 	}
 	// 打通tunnel
-	if cache.ReverseProxyUpConns[tunnelId] != nil && cache.ReverseProxyDownConns[tunnelId] != nil {
+	reverseProxyUpConn := GetConn(cache.ReverseProxyUpConns, tunnelId)
+	reverseProxyDownConn := GetConn(cache.ReverseProxyDownConns, tunnelId)
+	if reverseProxyUpConn != nil && reverseProxyDownConn != nil {
 		go func() {
-			io.Copy(cache.ReverseProxyUpConns[tunnelId], cache.ReverseProxyDownConns[tunnelId])
+			_, err := io.Copy(*reverseProxyUpConn, *reverseProxyDownConn)
+			if err != nil {
+				logger.Debug("onReverseClientConnect 1", err)
+			}
 			logger.Debug("ReverseProxyUpTunnel 关闭1", tunnelId)
-			cache.ReverseProxyUpConns[tunnelId].Close()
-			cache.ReverseProxyDownConns[tunnelId].Close()
+			CloseAndDelConn(cache.ReverseProxyUpConns, tunnelId)
+			CloseAndDelConn(cache.ReverseProxyDownConns, tunnelId)
 		}()
-		io.Copy(cache.ReverseProxyDownConns[tunnelId], cache.ReverseProxyUpConns[tunnelId])
+		_, err := io.Copy(*reverseProxyDownConn, *reverseProxyUpConn)
+		if err != nil {
+			logger.Debug("onReverseClientConnect 2", err)
+		}
 		logger.Debug("ReverseProxyDownTunnel 关闭1", tunnelId)
-		cache.ReverseProxyUpConns[tunnelId].Close()
-		cache.ReverseProxyDownConns[tunnelId].Close()
+		CloseAndDelConn(cache.ReverseProxyUpConns, tunnelId)
+		CloseAndDelConn(cache.ReverseProxyDownConns, tunnelId)
 	}
 }
 
 // 处理DownTunnel
 func OnReverseProxyDownTunnelConnected(tunnelId string) {
-	if cache.ReverseProxyFlags[tunnelId] != nil {
-		cache.ReverseProxyFlags[tunnelId] <- true
+	reverseProxyFlag := GetFlag(cache.ReverseProxyFlags, tunnelId)
+	if reverseProxyFlag != nil {
+		*reverseProxyFlag <- true
 	}
 }

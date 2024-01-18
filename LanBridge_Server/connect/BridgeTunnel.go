@@ -16,34 +16,27 @@ func OnBridgeUpTunnelConnected(message Message) {
 	tunnelId := message.TunnelId
 	defer func() {
 		// 关闭up
-		if cache.BridgeUpConns[tunnelId] != nil {
+		if CloseAndDelConn(cache.BridgeUpConns, tunnelId) {
 			logger.Debug("UpTunnel关闭", tunnelId)
-			cache.BridgeUpConns[tunnelId].Close()
-			delete(cache.BridgeUpConns, tunnelId)
 		}
 		// 关闭down
-		if cache.BridgeDownConns[tunnelId] != nil {
+		if CloseAndDelConn(cache.BridgeDownConns, tunnelId) {
 			logger.Debug("DownTunnel关闭", tunnelId)
-			cache.BridgeDownConns[tunnelId].Close()
-			delete(cache.BridgeDownConns, tunnelId)
 		}
 		// 关闭flag
-		if cache.BridgeFlags[tunnelId] != nil {
-			close(cache.BridgeFlags[tunnelId])
-			delete(cache.BridgeFlags, tunnelId)
-		}
+		CloseAndDelFlag(cache.BridgeFlags, tunnelId)
 	}()
 	// 如果远端机器没有连接
-	if cache.MainConns[message.DistCode] == nil {
+	if GetConn(cache.MainConns, message.DistCode) == nil {
 		newMessage := CopyMessage(message)
 		newMessage.Cmd = constant.Cmd_NotMainConnected
-		SendMessage(cache.MainConns[message.SrcCode], newMessage)
+		SendMessage(GetConn(cache.MainConns, message.SrcCode), newMessage)
 		return
 	}
 	// 向远端机器发送连接请求
 	newMessage := CopyMessage(message)
 	newMessage.Cmd = constant.Cmd_BridgeConn_Apply
-	hasErr := SendMessage(cache.MainConns[message.DistCode], newMessage)
+	hasErr := SendMessage(GetConn(cache.MainConns, message.DistCode), newMessage)
 	if hasErr {
 		return
 	}
@@ -52,29 +45,38 @@ func OnBridgeUpTunnelConnected(message Message) {
 	case <-time.After(constant.WaitSecond):
 		logger.Debug("Bridge 远端机器连接超时")
 		return
-	case connected := <-cache.BridgeFlags[tunnelId]:
+	case connected := <-*GetFlag(cache.BridgeFlags, tunnelId):
 		if connected == false {
 			return
 		}
 	}
 	// 打通tunnel
-	if cache.BridgeUpConns[tunnelId] != nil && cache.BridgeDownConns[tunnelId] != nil {
+	bridgeUpConn := GetConn(cache.BridgeUpConns, tunnelId)
+	bridgeDownConn := GetConn(cache.BridgeDownConns, tunnelId)
+	if bridgeUpConn != nil && bridgeDownConn != nil {
 		go func() {
-			io.Copy(cache.BridgeUpConns[tunnelId], cache.BridgeDownConns[tunnelId])
+			_, err := io.Copy(*bridgeUpConn, *bridgeDownConn)
+			if err != nil {
+				logger.Debug("OnBridgeUpTunnelConnected 1", err)
+			}
 			logger.Debug("DwonTunnel 关闭1", tunnelId)
-			cache.BridgeUpConns[tunnelId].Close()
-			cache.BridgeDownConns[tunnelId].Close()
+			CloseAndDelConn(cache.BridgeUpConns, tunnelId)
+			CloseAndDelConn(cache.BridgeDownConns, tunnelId)
 		}()
-		io.Copy(cache.BridgeDownConns[tunnelId], cache.BridgeUpConns[tunnelId])
+		_, err := io.Copy(*bridgeDownConn, *bridgeUpConn)
+		if err != nil {
+			logger.Debug("OnBridgeUpTunnelConnected 2", err)
+		}
 		logger.Debug("UpTunnel 关闭1", tunnelId)
-		cache.BridgeUpConns[tunnelId].Close()
-		cache.BridgeDownConns[tunnelId].Close()
+		CloseAndDelConn(cache.BridgeUpConns, tunnelId)
+		CloseAndDelConn(cache.BridgeDownConns, tunnelId)
 	}
 }
 
 // 处理DownTunnel
 func OnBridgeDownTunnelConnected(tunnelId string) {
-	if cache.BridgeFlags[tunnelId] != nil {
-		cache.BridgeFlags[tunnelId] <- true
+	bridgeFlag := GetFlag(cache.BridgeFlags, tunnelId)
+	if bridgeFlag != nil {
+		*bridgeFlag <- true
 	}
 }

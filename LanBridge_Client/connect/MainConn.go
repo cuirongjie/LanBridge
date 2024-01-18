@@ -21,10 +21,11 @@ var ChExit = make(chan bool, 1)
 func StartMain() {
 	defer func() {
 		if cache.MainConn != nil {
-			cache.MainConn.Close()
+			_ = cache.MainConn.Close()
 		}
 		connected = false
 	}()
+	logger.Info("正在连接服务器...")
 	var err error
 	for {
 		time.Sleep(time.Millisecond * 500)
@@ -49,7 +50,9 @@ func StartMain() {
 // 处理新建立的连接
 func connectRequest() {
 	defer func() {
-		cache.MainConn.Close()
+		if cache.MainConn != nil {
+			_ = cache.MainConn.Close()
+		}
 		connected = false
 		logger.Info("与服务端连接断开")
 	}()

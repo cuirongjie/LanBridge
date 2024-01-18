@@ -9,7 +9,6 @@ import (
 	"LanBridge_Server/logger"
 	"encoding/json"
 	"io/ioutil"
-	"net"
 	"strings"
 	"time"
 )
@@ -17,9 +16,6 @@ import (
 // 启动主服务
 func main() {
 	ch := make(chan bool)
-	// 初始化
-	cache.MainConns = make(map[string]net.Conn)
-	cache.BridgeUpConns = make(map[string]net.Conn)
 	// 读取、校验配置
 	bytes, err1 := ioutil.ReadFile("server.config")
 	var conf = cache.Config{

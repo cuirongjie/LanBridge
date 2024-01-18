@@ -4,29 +4,29 @@
 package cache
 
 import (
-	"net"
+	"sync"
 )
 
 // 主连接池
-var MainConns map[string]net.Conn
+var MainConns = &sync.Map{}
 
 // 桥接Up连接池
-var BridgeUpConns = make(map[string]net.Conn)
+var BridgeUpConns = &sync.Map{}
 
 // 桥接Down连接池
-var BridgeDownConns = make(map[string]net.Conn)
+var BridgeDownConns = &sync.Map{}
 
 // 桥接连接状态池
-var BridgeFlags = make(map[string]chan bool)
+var BridgeFlags = &sync.Map{}
 
 // 反向代理Up连接池
-var ReverseProxyUpConns = make(map[string]net.Conn)
+var ReverseProxyUpConns = &sync.Map{}
 
 // 反向代理Down连接池
-var ReverseProxyDownConns = make(map[string]net.Conn)
+var ReverseProxyDownConns = &sync.Map{}
 
 // 反向代理连接池状态
-var ReverseProxyFlags = make(map[string]chan bool)
+var ReverseProxyFlags = &sync.Map{}
 
 // 配置
 type Mapping struct {

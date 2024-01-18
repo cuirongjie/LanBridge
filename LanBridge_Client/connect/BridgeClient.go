@@ -27,7 +27,7 @@ func onBridgeApply(message Message) {
 		return
 	}
 	defer func() {
-		distConn.Close()
+		_ = distConn.Close()
 	}()
 	// 创建与服务器DownTunnel
 	downTunnelConn, err := net.Dial("tcp", cache.Conf.ServerAddr)
@@ -36,7 +36,7 @@ func onBridgeApply(message Message) {
 		return
 	}
 	defer func() {
-		downTunnelConn.Close()
+		_ = downTunnelConn.Close()
 		logger.Debug("DwonTunnel连接 关闭", message.TunnelId)
 	}()
 	// 发送握手信息
@@ -49,14 +49,22 @@ func onBridgeApply(message Message) {
 	}
 	logger.Debug("DwonTunnel 连接建立", message.TunnelId)
 	// 打通tunnel
-	go func() {
-		io.Copy(distConn, downTunnelConn)
-		logger.Debug("DwonTunnel连接 关闭1", message.TunnelId)
-		distConn.Close()
-		downTunnelConn.Close()
-	}()
-	io.Copy(downTunnelConn, distConn)
-	logger.Debug("目标连接 关闭1", message.TunnelId)
-	distConn.Close()
-	downTunnelConn.Close()
+	if distConn != nil && downTunnelConn != nil {
+		go func() {
+			_, err := io.Copy(distConn, downTunnelConn)
+			if err != nil {
+				logger.Debug("onBridgeApply 1", err)
+			}
+			logger.Debug("DwonTunnel连接 关闭1", message.TunnelId)
+			_ = distConn.Close()
+			_ = downTunnelConn.Close()
+		}()
+		_, err := io.Copy(downTunnelConn, distConn)
+		if err != nil {
+			logger.Debug("onBridgeApply 2", err)
+		}
+		logger.Debug("目标连接 关闭1", message.TunnelId)
+		_ = distConn.Close()
+		_ = downTunnelConn.Close()
+	}
 }

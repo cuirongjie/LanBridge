@@ -24,20 +24,20 @@ func StartServer() {
 	for {
 		client, err := server.Accept()
 		if err == nil {
-			go onMainConnect(client)
+			go onMainConnect(&client)
 		}
 	}
 }
 
 // 处理新建立的连接
-func onMainConnect(client net.Conn) {
+func onMainConnect(client *net.Conn) {
 	var message Message
 	//
 	ch := make(chan bool, 1)
 	go func() {
 		// 读取握手信息
 		buf := make([]byte, 2048)
-		n, err := client.Read(buf)
+		n, err := (*client).Read(buf)
 		if err != nil {
 			ch <- false
 			return
@@ -50,6 +50,7 @@ func onMainConnect(client net.Conn) {
 			ch <- false
 			return
 		}
+		//logger.Info(data)
 		if message.Cmd == constant.Cmd_MainConn { // 主连接
 			srcCode := message.SrcCode
 			serverPassword := message.ServerPassword
@@ -78,14 +79,23 @@ func onMainConnect(client net.Conn) {
 				}
 			}
 			// 放入连接池
-			if cache.MainConns[srcCode] != nil {
+
+			if GetConn(cache.MainConns, srcCode) != nil {
 				// 给client发送连接已存在
 				newMessage := NewMessage(constant.Cmd_MainConnectExist)
 				SendMessage(client, newMessage)
 				ch <- false
 				return
 			}
-			cache.MainConns[srcCode] = client
+			StoreConn(cache.MainConns, srcCode, client)
+
+			//mySyncMap := &sync.Map{}
+			//mySyncMap.Store(srcCode, client)
+			//val1, ok := mySyncMap.Load(srcCode)
+			//if ok {
+			//	val2 := val1.(net.Conn) // 转换成指定的类型
+			//}
+
 			// 给client发送连接成功
 			newMessage := NewMessage(constant.Cmd_MainConnected)
 			SendMessage(client, newMessage)
@@ -94,8 +104,9 @@ func onMainConnect(client net.Conn) {
 			ch <- true
 		} else if message.Cmd == constant.Cmd_BridgeConn_Up { // BridgeUpTunnel连接
 			// 放入连接池
-			cache.BridgeUpConns[message.TunnelId] = client
-			cache.BridgeFlags[message.TunnelId] = make(chan bool, 1)
+			StoreConn(cache.BridgeUpConns, message.TunnelId, client)
+			bridgeCh := make(chan bool, 1)
+			StoreFlag(cache.BridgeFlags, message.TunnelId, &bridgeCh)
 			// 开始处理UpTunnel
 			go OnBridgeUpTunnelConnected(message)
 			logger.Debug("UpTunnel建立", message.TunnelId)
@@ -103,7 +114,7 @@ func onMainConnect(client net.Conn) {
 		} else if message.Cmd == constant.Cmd_BridgeConn_Down { // BridgeDownTunnel连接
 			tunnelId := message.TunnelId
 			// 放入连接池
-			cache.BridgeDownConns[tunnelId] = client
+			StoreConn(cache.BridgeDownConns, tunnelId, client)
 			// 开始处理DownTunnel
 			go OnBridgeDownTunnelConnected(tunnelId)
 			logger.Debug("DownTunnel建立", tunnelId)
@@ -111,7 +122,7 @@ func onMainConnect(client net.Conn) {
 		} else if message.Cmd == constant.Cmd_ReverseProxyConn { // ReverseProxy连接
 			tunnelId := message.TunnelId
 			// 放入连接池
-			cache.ReverseProxyDownConns[tunnelId] = client
+			StoreConn(cache.ReverseProxyDownConns, tunnelId, client)
 			// 开始处理DownTunnel
 			go OnReverseProxyDownTunnelConnected(tunnelId)
 			logger.Debug("ReverseProxyDownTunnel建立", tunnelId)
@@ -124,11 +135,11 @@ func onMainConnect(client net.Conn) {
 	select {
 	case <-time.After(constant.WaitSecond):
 		logger.Debug("超时退出", message.Cmd)
-		client.Close()
+		_ = (*client).Close()
 		return
 	case connected := <-ch:
 		if connected == false {
-			client.Close()
+			_ = (*client).Close()
 			return
 		}
 	}
@@ -137,15 +148,14 @@ func onMainConnect(client net.Conn) {
 // 处理客户端主连接
 func onMainConnected(clientCode string) {
 	defer func() {
-		if cache.MainConns[clientCode] != nil {
-			cache.MainConns[clientCode].Close()
-			delete(cache.MainConns, clientCode)
+		if CloseAndDelConn(cache.MainConns, clientCode) {
 			logger.Debug("与客户端", clientCode, "连接断开")
 		}
 	}() // 读取握手信息
 	for {
 		buf := make([]byte, 1024)
-		n, err := cache.MainConns[clientCode].Read(buf)
+		conn := GetConn(cache.MainConns, clientCode)
+		n, err := (*conn).Read(buf)
 		if err != nil {
 			return
 		}
@@ -155,12 +165,14 @@ func onMainConnected(clientCode string) {
 		message := Str2Msg(data1)
 		switch message.Cmd {
 		case constant.Cmd_BadClientPassword: // 客户端密码有误
-			if cache.BridgeFlags[message.TunnelId] != nil {
-				cache.BridgeFlags[message.TunnelId] <- false
+			bridgeCh := GetFlag(cache.BridgeFlags, message.TunnelId)
+			if bridgeCh != nil {
+				*bridgeCh <- false
 			}
 			newMessage := CopyMessage(message)
 			newMessage.Cmd = constant.Cmd_BadClientPassword
-			SendMessage(cache.MainConns[message.SrcCode], newMessage)
+			srcConn := GetConn(cache.MainConns, message.SrcCode)
+			SendMessage(srcConn, newMessage)
 		}
 	}
 }

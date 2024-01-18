@@ -35,19 +35,21 @@ func startListen(mapping cache.Mapping) {
 	for {
 		client, err := server.Accept()
 		if err == nil {
-			go handleClientRequest(client, mapping)
+			go onBridgeVisitConnected(client, mapping)
 		}
 	}
 }
 
 // 接收到连接
-func handleClientRequest(clientConn net.Conn, mapping cache.Mapping) {
+func onBridgeVisitConnected(clientConn net.Conn, mapping cache.Mapping) {
 	// tunnelId
 	rand.Intn(100000)
 	tunnelId := strconv.FormatInt(time.Now().UnixNano(), 10) + strconv.Itoa(rand.Intn(100000))
 	//
 	defer func() {
-		clientConn.Close()
+		if cache.MainConn != nil {
+			_ = clientConn.Close()
+		}
 	}()
 	// 创建与服务器UpTunnel
 	upTunnelConn, err := net.Dial("tcp", cache.Conf.ServerAddr)
@@ -56,7 +58,9 @@ func handleClientRequest(clientConn net.Conn, mapping cache.Mapping) {
 		return
 	}
 	defer func() {
-		upTunnelConn.Close()
+		if cache.MainConn != nil {
+			_ = upTunnelConn.Close()
+		}
 		logger.Debug("UpTunnel 连接断开", tunnelId)
 	}()
 	// 发送握手信息
@@ -73,16 +77,24 @@ func handleClientRequest(clientConn net.Conn, mapping cache.Mapping) {
 	}
 	logger.Debug("UpTunnel 连接建立", tunnelId)
 	// 打通tunnel
-	go func() {
-		io.Copy(clientConn, upTunnelConn)
-		logger.Debug("UpTunnel 连接断开1", tunnelId)
-		clientConn.Close()
-		upTunnelConn.Close()
-	}()
-	io.Copy(upTunnelConn, clientConn)
-	logger.Debug("源连接断开1", tunnelId)
-	clientConn.Close()
-	upTunnelConn.Close()
+	if clientConn != nil && upTunnelConn != nil {
+		go func() {
+			_, err := io.Copy(clientConn, upTunnelConn)
+			if err != nil {
+				logger.Debug("onBridgeVisitConnected 1", err)
+			}
+			logger.Debug("UpTunnel 连接断开1", tunnelId)
+			_ = clientConn.Close()
+			_ = upTunnelConn.Close()
+		}()
+		_, err := io.Copy(upTunnelConn, clientConn)
+		if err != nil {
+			logger.Debug("onBridgeVisitConnected 2", err)
+		}
+		logger.Debug("源连接断开1", tunnelId)
+		_ = clientConn.Close()
+		_ = upTunnelConn.Close()
+	}
 }
 
 func onBadClientPassword(message Message) {
