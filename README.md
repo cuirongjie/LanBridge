@@ -176,7 +176,7 @@ Connect multiple LANs to access each other as if they were on one LAN.
 3. 如果在“用法一”的基础上为服务器添加连接密码和白名单，可以采用一样的方式。
 
 ## WebUI
-在任意客户端访问：http://localhost:8204/  即可查看网络运行情况
+在任意客户端访问：http://localhost:28011/  即可查看网络运行情况
 
 ## 完整配置
 
