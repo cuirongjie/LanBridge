@@ -175,6 +175,9 @@ Connect multiple LANs to access each other as if they were on one LAN.
 2. 此时为服务器111.204.166.168添加白名单，只有识别码(MyCode)在白名单("Client1", "Client2", "Client1621")中的三台客户端可以连接服务器；
 3. 如果在“用法一”的基础上为服务器添加连接密码和白名单，可以采用一样的方式。
 
+## WebUI
+在任意客户端访问：http://localhost:8204/，即可查看网络运行情况
+
 ## 完整配置
 
 #### 服务端
