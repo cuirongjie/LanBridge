@@ -3,6 +3,7 @@ package webui
 import (
 	"LanBridge_Client/cache"
 	"LanBridge_Client/connect"
+	"LanBridge_Client/logger"
 	"fmt"
 	"net/http"
 )
@@ -16,6 +17,8 @@ func netstatus(writer http.ResponseWriter, request *http.Request) {
 }
 
 func StartWebUI() {
+	serverURI := "127.0.0.1:28011"
+	logger.Info("WebUI:", serverURI)
 	http.HandleFunc("/", netstatus)
-	http.ListenAndServe("127.0.0.1:8204", nil)
+	http.ListenAndServe(serverURI, nil)
 }
