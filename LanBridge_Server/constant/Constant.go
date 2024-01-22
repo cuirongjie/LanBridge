@@ -8,6 +8,9 @@ import "time"
 // 主连接 连接标识
 var Cmd_MainConn = "mainconnect"
 
+// 主连接 连接标识
+var Cmd_Heartbeat = "heartbeat"
+
 // 主连接 连接成功
 var Cmd_MainConnected = "mainconnected"
 

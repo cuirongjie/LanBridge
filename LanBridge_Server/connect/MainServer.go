@@ -9,6 +9,7 @@ import (
 	"LanBridge_Server/logger"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -160,7 +161,7 @@ func onMainConnected(clientCode string) {
 			return
 		}
 		data1 := string(buf[:n])
-		logger.Debug("收到客户端", clientCode, "数据", data1)
+		//logger.Debug("收到客户端", clientCode, "数据", data1)
 		// 处理接收的数据
 		message := Str2Msg(data1)
 		switch message.Cmd {
@@ -173,6 +174,31 @@ func onMainConnected(clientCode string) {
 			newMessage.Cmd = constant.Cmd_BadClientPassword
 			srcConn := GetConn(cache.MainConns, message.SrcCode)
 			SendMessage(srcConn, newMessage)
+		case constant.Cmd_Heartbeat:
+			logger.Debug("Heartbeat", message.SrcCode)
 		}
+	}
+}
+
+// 向每个客户端主连接，发送心跳
+func StartHeartbeat() {
+	for {
+		time.Sleep(time.Second * 3)
+		// 统计当前主连接
+		codes := ""
+		split := ",#`"
+		cache.MainConns.Range(func(key, value interface{}) bool {
+			codes = codes + key.(string) + split
+			return true
+		})
+		codes = strings.Trim(codes, split)
+		//
+		cache.MainConns.Range(func(key, value interface{}) bool {
+			message := NewMessage(constant.Cmd_Heartbeat)
+			message.ConnStatus.MainCodes = strings.Split(codes, split)
+			srcConn := GetConn(cache.MainConns, key.(string))
+			SendMessage(srcConn, message)
+			return true
+		})
 	}
 }

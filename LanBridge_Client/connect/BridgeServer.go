@@ -70,7 +70,7 @@ func onBridgeVisitConnected(clientConn net.Conn, mapping cache.Mapping) {
 	message.DistCode = mapping.DistCode
 	message.DistPassword = mapping.DistPassword
 	message.DistAddr = mapping.DistAddr
-	hasErr := SendMessage(upTunnelConn, message)
+	hasErr := SendMessage(&upTunnelConn, message)
 	if hasErr {
 		logger.Debug("UpTunnel 向服务器发送数据失败", tunnelId)
 		return

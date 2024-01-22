@@ -12,13 +12,20 @@ import (
 
 // 消息定义
 type Message struct {
-	Cmd            string `json:"Cmd"`
-	ServerPassword string `json:"ServerPassword"`
-	SrcCode        string `json:"SrcCode"`
-	TunnelId       string `json:"TunnelId"`
-	DistCode       string `json:"DistCode"`
-	DistPassword   string `json:"DistPassword"`
-	DistAddr       string `json:"DistAddr"`
+	Cmd            string     `json:"a"`
+	ServerPassword string     `json:"b"`
+	SrcCode        string     `json:"c"`
+	TunnelId       string     `json:"d"`
+	DistCode       string     `json:"e"`
+	DistPassword   string     `json:"f"`
+	DistAddr       string     `json:"g"`
+	ConnStatus     ConnStatus `json:"h"`
+}
+
+// 消息定义
+type ConnStatus struct {
+	MainCodes []string `json:"i"`
+	Clients   []string `json:"g"`
 }
 
 // 消息对象转json字符串

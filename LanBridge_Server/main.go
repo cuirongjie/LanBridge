@@ -66,5 +66,8 @@ func main() {
 	// 启动反向代理服务连接
 	go connect.StartReverseProxyServer()
 
+	// 启动心跳
+	go connect.StartHeartbeat()
+
 	<-ch
 }

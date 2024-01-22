@@ -7,6 +7,7 @@ import (
 	"LanBridge_Client/cache"
 	"LanBridge_Client/connect"
 	"LanBridge_Client/logger"
+	"LanBridge_Client/webui"
 	"encoding/json"
 	"io/ioutil"
 	"strings"
@@ -53,6 +54,9 @@ func main() {
 
 	// 启动监听服务
 	go connect.StartBridgeServer()
+
+	// 启动webui
+	go webui.StartWebUI()
 
 	<-connect.ChExit
 	logger.Info("程序即将退出...")

@@ -28,3 +28,6 @@ type Config struct {
 }
 
 var Conf Config
+
+// 当前网络情况 ConnStatus
+var AllStatus interface{}

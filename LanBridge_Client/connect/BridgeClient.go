@@ -17,7 +17,7 @@ func onBridgeApply(message Message) {
 	if cache.Conf.OpenMyPassword && message.DistPassword != cache.Conf.MyPassword {
 		newMsg := CopyMessage(message)
 		newMsg.Cmd = constant.Cmd_BadClientPassword
-		SendMessage(cache.MainConn, newMsg)
+		SendMessage(&cache.MainConn, newMsg)
 		return
 	}
 	// 连接目标机器
@@ -42,7 +42,7 @@ func onBridgeApply(message Message) {
 	// 发送握手信息
 	newMsg := CopyMessage(message)
 	newMsg.Cmd = constant.Cmd_BridgeConn_Down
-	hasErr := SendMessage(downTunnelConn, newMsg)
+	hasErr := SendMessage(&downTunnelConn, newMsg)
 	if hasErr {
 		logger.Debug("DwonTunnel 向服务器发送数据失败", message.TunnelId)
 		return

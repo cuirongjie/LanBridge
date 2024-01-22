@@ -35,7 +35,7 @@ func onReverseProxyApply(message Message) {
 	// 发送握手信息
 	newMsg := CopyMessage(message)
 	newMsg.Cmd = constant.Cmd_ReverseProxyConn
-	hasErr := SendMessage(reverseProxyTunnelConn, newMsg)
+	hasErr := SendMessage(&reverseProxyTunnelConn, newMsg)
 	if hasErr {
 		logger.Debug("ReverseProxyTunnel 向服务器发送数据失败", message.TunnelId)
 		return

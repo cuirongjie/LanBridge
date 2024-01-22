@@ -61,7 +61,7 @@ func connectRequest() {
 	message := NewMessage(constant.Cmd_MainConn)
 	message.SrcCode = cache.Conf.MyCode
 	message.ServerPassword = cache.Conf.ServerPassword
-	SendMessage(cache.MainConn, message)
+	SendMessage(&cache.MainConn, message)
 
 	// 获取服务器的应答
 	for {
@@ -101,5 +101,13 @@ func onData(data string) {
 		onBridgeApply(message)
 	case constant.Cmd_ReverseProxyConn_Apply: // 桥接连接申请
 		onReverseProxyApply(message)
+	case constant.Cmd_Heartbeat: // 收到心跳
+		onHeartbeat(message)
 	}
+}
+
+// 收到心跳
+func onHeartbeat(message Message) {
+	cache.AllStatus = message
+	logger.Debug("onHeartbeat", message)
 }
