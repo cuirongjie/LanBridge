@@ -27,8 +27,7 @@ func startListen(mapping cache.Mapping) {
 	LocalPort := strconv.Itoa(mapping.LocalPort)
 	server, err := net.Listen("tcp", "0.0.0.0:"+LocalPort)
 	if err != nil {
-		logger.Info("端口", LocalPort, "被占用！！！")
-		ChExit <- true
+		logger.Info("端口", LocalPort, "被占用，开启失败！！！")
 		return
 	}
 	logger.Debug("启动监听:", LocalPort)

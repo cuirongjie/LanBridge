@@ -183,7 +183,7 @@ func onMainConnected(clientCode string) {
 // 向每个客户端主连接，发送心跳
 func StartHeartbeat() {
 	for {
-		time.Sleep(time.Second * 3)
+		time.Sleep(time.Second * 2)
 		// 统计当前主连接
 		codes := ""
 		split := ",#`"
